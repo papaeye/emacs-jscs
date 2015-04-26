@@ -60,7 +60,7 @@
 (defun jscs-indent--read-preset (name)
   (let ((preset (expand-file-name (concat name ".json")
 				  jscs-indent--presets-path)))
-    (if (file-exists-p preset)
+    (if (file-readable-p preset)
 	(json-read-file preset)
       (error "Preset %s is not found" name))))
 
