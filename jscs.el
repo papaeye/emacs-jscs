@@ -144,7 +144,7 @@
 ;;;###autoload (autoload 'jscs-fix-before-save "jscs" nil t)
 (define-langfmt jscs-fix
   "Format the current buffer according to the JSCS tool."
-  :group 'jscs-fix
+  :group 'jscs
   :modes '(js-mode js2-mode js3-mode)
   :runner #'jscs-fix--runner
   :error-filter #'jscs-fix--error-filter)
