@@ -1,11 +1,11 @@
-;;; jscs-indent.el --- Apply JSCS indentation rules to JS modes  -*- lexical-binding: t; -*-
+;;; jscs.el --- Consistent JavaScript editing using JSCS  -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2015  papaeye
 
 ;; Author: papaeye <papaeye@gmail.com>
 ;; Keywords: languages, convenience
 ;; Version: 0.1.0
-;; Homepage: https://github.com/papaeye/emacs-jscs-indent
+;; Homepage: https://github.com/papaeye/emacs-jscs
 ;; Package-Requires: ((emacs "24.1"))
 
 ;; This program is free software; you can redistribute it and/or modify
@@ -23,22 +23,22 @@
 
 ;;; Commentary:
 
-;; jscs-indent applies JSCS indentation rules to JavaScript modes.
+;; jscs.el provides consistent JavaScript editing using JSCS.
 ;;
 ;; Installation:
 ;;
 ;; 1. Install JSCS <http://jscs.info/>.
 ;;
-;; 2. Put jscs-indent.el somewhere in your `load-path'.
+;; 2. Put jscs.el somewhere in your `load-path'.
 ;;
 ;; 3. Add the following code into your .emacs:
 ;;
+;;     (autoload 'jscs-indent-apply "jscs" nil t)
+;;
 ;;     (with-eval-after-load 'js
-;;       (require 'jscs-indent)
 ;;       (add-hook 'js-mode-hook #'jscs-indent-apply))
 ;;
 ;;     (with-eval-after-load 'js2-mode
-;;       (require 'jscs-indent)
 ;;       (add-hook 'js2-mode-hook #'jscs-indent-apply))
 
 ;;; Code:
@@ -114,5 +114,5 @@
     (when jscsrc
       (jscs-indent--apply jscsrc))))
 
-(provide 'jscs-indent)
-;;; jscs-indent.el ends here
+(provide 'jscs)
+;;; jscs.el ends here
