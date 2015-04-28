@@ -29,17 +29,32 @@
 ;;
 ;; 1. Install JSCS <http://jscs.info/>.
 ;;
-;; 2. Put jscs.el somewhere in your `load-path'.
+;; 2. Put jscs.el and langfmt.el <https://github.com/papaeye/go-mode.el>
+;;    somewhere in your `load-path'.
 ;;
 ;; 3. Add the following code into your .emacs:
 ;;
 ;;     (autoload 'jscs-indent-apply "jscs" nil t)
+;;     (autoload 'jscs-fix "jscs" nil t)
+;;     (autoload 'jscs-fix-before-save "jscs" nil t)
+;;
+;; Usage:
+;;
+;; To apply JSCS indentation rules to JavaScript modes,
+;; add the following code into your .emacs:
 ;;
 ;;     (with-eval-after-load 'js
 ;;       (add-hook 'js-mode-hook #'jscs-indent-apply))
 ;;
 ;;     (with-eval-after-load 'js2-mode
 ;;       (add-hook 'js2-mode-hook #'jscs-indent-apply))
+;;
+;; To run "jscs --fix" interactively, run \\[jscs-fix].
+;;
+;; To run "jscs --fix" on the current buffer when saving,
+;; add the following code into your .emacs:
+;;
+;;     (add-hook 'before-save-hook #'jscs-fix-before-save)
 
 ;;; Code:
 
