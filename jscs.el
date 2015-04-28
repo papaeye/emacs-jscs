@@ -6,7 +6,7 @@
 ;; Keywords: languages, convenience
 ;; Version: 0.1.0
 ;; Homepage: https://github.com/papaeye/emacs-jscs
-;; Package-Requires: ((emacs "24.1"))
+;; Package-Requires: ((emacs "24.1") (langfmt "0.1.0"))
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -44,6 +44,8 @@
 ;;; Code:
 
 (require 'json)
+
+(require 'langfmt)
 
 (defvar js-indent-level)
 (defvar js2-basic-offset)
@@ -122,6 +124,48 @@
   (let ((jscsrc (jscs-indent--read-jscsrc)))
     (when jscsrc
       (jscs-indent--apply jscsrc))))
+
+;;;###autoload (autoload 'jscs-fix "jscs" nil t)
+;;;###autoload (autoload 'jscs-fix-before-save "jscs" nil t)
+(define-langfmt jscs-fix
+  "Format the current buffer according to the JSCS tool."
+  :group 'jscs-fix
+  :modes '(js-mode js2-mode js3-mode)
+  :runner #'jscs-fix--runner
+  :error-filter #'jscs-fix--error-filter)
+
+(defun jscs-fix--runner (tmpfile patchbuf errbuf)
+  (let ((exit (call-process jscs-command nil errbuf nil
+                            "--fix" "--reporter" "inline" tmpfile)))
+    (if (= exit 1)
+        (progn
+          (message "No configuration found")
+          (when errbuf
+            (langfmt-kill-error-buffer errbuf)))
+      (if (zerop (call-process-region (point-min) (point-max) "diff"
+                                      nil patchbuf nil "-n" "-" tmpfile))
+          (message (if (zerop exit)
+                       "Buffer is already jscs-fixed"
+                     "Could not apply jscs-fix"))
+        (langfmt-apply-rcs-patch patchbuf)
+        (message (if (zerop exit)
+                     "Applied jscs-fix"
+                   "Applied jscs-fix partially")))
+      (when errbuf
+        (if (zerop exit)
+            (langfmt-kill-error-buffer errbuf)
+          (jscs-fix--process-errors (buffer-file-name) tmpfile errbuf))))))
+
+(defun jscs-fix--error-filter (filename tmpfile)
+  (while (search-forward-regexp
+          (concat "^\\(?:"
+                  (regexp-quote tmpfile)
+                  "\\): line \\([0-9]+\\), col \\([0-9]+\\), \\(.+\\)")
+          nil t)
+    (replace-match (concat (file-name-nondirectory filename)
+                           ":" (match-string 1) ":" (match-string 2)
+                           ": " (match-string 3))
+                   t t)))
 
 (provide 'jscs)
 ;;; jscs.el ends here
