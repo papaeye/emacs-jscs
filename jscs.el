@@ -74,27 +74,25 @@
   :type 'string
   :group 'jscs)
 
-(defvar jscs-indent--presets-path
+(defvar jscs--presets-path
   (expand-file-name "../lib/node_modules/jscs/presets"
 		    (file-name-directory (executable-find jscs-command))))
 
-(defun jscs-indent--read-jscsrc ()
+(defun jscs--read-jscsrc ()
   (let ((dir (locate-dominating-file default-directory ".jscsrc")))
     (when dir
       (json-read-file (expand-file-name ".jscsrc" dir)))))
 
-(defun jscs-indent--read-preset (name)
-  (let ((preset (expand-file-name (concat name ".json")
-				  jscs-indent--presets-path)))
+(defun jscs--read-preset (name)
+  (let ((preset (expand-file-name (concat name ".json") jscs--presets-path)))
     (if (file-readable-p preset)
 	(json-read-file preset)
       (error "Preset %s is not found" name))))
 
-(defun jscs-indent--config-list (config)
+(defun jscs--config-list (config)
   (let ((preset (cdr (assq 'preset config))))
     (if (stringp preset)
-	(cons config (jscs-indent--config-list
-		      (jscs-indent--read-preset preset)))
+	(cons config (jscs--config-list (jscs--read-preset preset)))
       (list config))))
 
 (defun jscs-indent--rule-validate-indentation (config)
@@ -125,7 +123,7 @@
 	#'jscs-indent--rule-maximum-line-length))
 
 (defun jscs-indent--apply (config)
-  (let ((config-list (jscs-indent--config-list config)))
+  (let ((config-list (jscs--config-list config)))
     (dolist (func jscs-indent--rule-functions)
       (let ((tail config-list)
 	    done)
@@ -136,7 +134,7 @@
 ;;;###autoload
 (defun jscs-indent-apply ()
   (interactive)
-  (let ((jscsrc (jscs-indent--read-jscsrc)))
+  (let ((jscsrc (jscs--read-jscsrc)))
     (when jscsrc
       (jscs-indent--apply jscsrc))))
 
