@@ -48,9 +48,18 @@
 (defvar js-indent-level)
 (defvar js2-basic-offset)
 
+(defgroup jscs nil
+  "Consistent JavaScript editing using JSCS"
+  :group 'tools)
+
+(defcustom jscs-command "jscs"
+  "The 'jscs' command."
+  :type 'string
+  :group 'jscs)
+
 (defvar jscs-indent--presets-path
   (expand-file-name "../lib/node_modules/jscs/presets"
-		    (file-name-directory (executable-find "jscs"))))
+		    (file-name-directory (executable-find jscs-command))))
 
 (defun jscs-indent--read-jscsrc ()
   (let ((dir (locate-dominating-file default-directory ".jscsrc")))
