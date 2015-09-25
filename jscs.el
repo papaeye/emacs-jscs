@@ -151,36 +151,36 @@
 
 (defun jscs-fix--runner (tmpfile patchbuf errbuf)
   (let ((exit (call-process jscs-command nil errbuf nil
-                            "--fix" "--reporter" "inline" tmpfile)))
+			    "--fix" "--reporter" "inline" tmpfile)))
     (if (= exit 1)
-        (progn
-          (message "No configuration found")
-          (when errbuf
-            (langfmt-kill-error-buffer errbuf)))
+	(progn
+	  (message "No configuration found")
+	  (when errbuf
+	    (langfmt-kill-error-buffer errbuf)))
       (if (zerop (call-process-region (point-min) (point-max) "diff"
-                                      nil patchbuf nil "-n" "-" tmpfile))
-          (message (if (zerop exit)
-                       "Buffer is already jscs-fixed"
-                     "Could not apply jscs-fix"))
-        (langfmt-apply-rcs-patch patchbuf)
-        (message (if (zerop exit)
-                     "Applied jscs-fix"
-                   "Applied jscs-fix partially")))
+				      nil patchbuf nil "-n" "-" tmpfile))
+	  (message (if (zerop exit)
+		       "Buffer is already jscs-fixed"
+		     "Could not apply jscs-fix"))
+	(langfmt-apply-rcs-patch patchbuf)
+	(message (if (zerop exit)
+		     "Applied jscs-fix"
+		   "Applied jscs-fix partially")))
       (when errbuf
-        (if (zerop exit)
-            (langfmt-kill-error-buffer errbuf)
-          (jscs-fix--process-errors (buffer-file-name) tmpfile errbuf))))))
+	(if (zerop exit)
+	    (langfmt-kill-error-buffer errbuf)
+	  (jscs-fix--process-errors (buffer-file-name) tmpfile errbuf))))))
 
 (defun jscs-fix--error-filter (filename tmpfile)
   (while (search-forward-regexp
-          (concat "^\\(?:"
-                  (regexp-quote tmpfile)
-                  "\\): line \\([0-9]+\\), col \\([0-9]+\\), \\(.+\\)")
-          nil t)
+	  (concat "^\\(?:"
+		  (regexp-quote tmpfile)
+		  "\\): line \\([0-9]+\\), col \\([0-9]+\\), \\(.+\\)")
+	  nil t)
     (replace-match (concat (file-name-nondirectory filename)
-                           ":" (match-string 1) ":" (match-string 2)
-                           ": " (match-string 3))
-                   t t)))
+			   ":" (match-string 1) ":" (match-string 2)
+			   ": " (match-string 3))
+		   t t)))
 
 (provide 'jscs)
 ;;; jscs.el ends here
