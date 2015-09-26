@@ -75,7 +75,7 @@
 (jscs-fix-deftest failed "Could not apply jscs-fix" t)
 (jscs-fix-deftest fixed "Applied jscs-fix")
 (jscs-fix-deftest fixed-partially "Applied jscs-fix partially" t)
-(jscs-fix-deftest missing-config "No configuration found")
+(jscs-fix-deftest missing-config "No configuration found" t)
 (jscs-fix-deftest no-errors "Buffer is already jscs-fixed")
 
 (provide 'jscs-test)

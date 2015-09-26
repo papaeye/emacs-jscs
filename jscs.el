@@ -66,7 +66,6 @@
 (defvar js2-basic-offset)
 
 ;; JSCS exit codes
-(defconst jscs-exit-no-errors 0)
 (defconst jscs-exit-code-style-errors 2)
 (defconst jscs-exit-missing-config 4)
 
@@ -157,11 +156,10 @@
 (defun jscs-fix--runner (tmpfile patchbuf errbuf)
   (let ((exit (call-process jscs-command nil errbuf nil
 			    "--fix" "--reporter" "inline" tmpfile)))
-    (if (= exit jscs-exit-missing-config)
-	(progn
-	  (message "No configuration found")
-	  (when errbuf
-	    (langfmt-kill-error-buffer errbuf)))
+    (cond
+     ((= exit jscs-exit-missing-config)
+      (message "No configuration found"))
+     (t
       (if (zerop (call-process-region (point-min) (point-max) "diff"
 				      nil patchbuf nil "-n" "-" tmpfile))
 	  (message (if (zerop exit)
@@ -170,11 +168,11 @@
 	(langfmt-apply-rcs-patch patchbuf)
 	(message (if (zerop exit)
 		     "Applied jscs-fix"
-		   "Applied jscs-fix partially")))
-      (when errbuf
-	(if (zerop exit)
-	    (langfmt-kill-error-buffer errbuf)
-	  (jscs-fix--process-errors (buffer-file-name) tmpfile errbuf))))))
+		   "Applied jscs-fix partially")))))
+    (when errbuf
+      (if (zerop exit)
+	  (langfmt-kill-error-buffer errbuf)
+	(jscs-fix--process-errors (buffer-file-name) tmpfile errbuf)))))
 
 (defun jscs-fix--error-filter (filename tmpfile)
   (while (search-forward-regexp
