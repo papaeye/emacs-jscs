@@ -111,7 +111,7 @@
 	 ((memq major-mode '(js-mode json-mode))
 	  (setq-local js-indent-level indent))
 	 ((eq major-mode 'js2-mode)
-	  (setq js2-basic-offset indent)))
+	  (setq-local js2-basic-offset indent)))
 	(setq indent-tabs-mode nil))
        ((string= indent "\t")
 	(setq indent-tabs-mode t))))))
