@@ -15,3 +15,7 @@ compile: $(ELCS)
 .PHONY: test
 test: compile
 	$(EMACS) $(EFLAGS) -l $(TEST_EL) --batch -f ert-run-tests-batch-and-exit
+
+.PHONY: test-deps
+test-deps:
+	cd test && npm install jscs
