@@ -65,6 +65,11 @@
 (defvar js-indent-level)
 (defvar js2-basic-offset)
 
+;; JSCS exit codes
+(defconst jscs-exit-no-errors 0)
+(defconst jscs-exit-code-style-errors 2)
+(defconst jscs-exit-missing-config 4)
+
 (defgroup jscs nil
   "Consistent JavaScript editing using JSCS"
   :group 'tools)
@@ -152,7 +157,7 @@
 (defun jscs-fix--runner (tmpfile patchbuf errbuf)
   (let ((exit (call-process jscs-command nil errbuf nil
 			    "--fix" "--reporter" "inline" tmpfile)))
-    (if (= exit 1)
+    (if (= exit jscs-exit-missing-config)
 	(progn
 	  (message "No configuration found")
 	  (when errbuf
