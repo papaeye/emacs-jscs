@@ -47,13 +47,6 @@
 (defun jscs-test-case-directory (case)
   (expand-file-name case jscs-test-cases-directory))
 
-(defun jscs-test-last-message ()
-  (with-current-buffer "*Messages*"
-    (save-excursion
-      (let ((end (goto-char (1- (point-max))))
-	    (beg (1+ (search-backward "\n"))))
-	(buffer-substring-no-properties beg end)))))
-
 (defmacro jscs-fix-deftest (case expected-message &optional display-errors)
   (let* ((case-name (format "fix/%s" case))
 	 (test-name (format "jscs/%s" case-name)))
