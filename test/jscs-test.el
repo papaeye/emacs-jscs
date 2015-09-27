@@ -52,7 +52,15 @@
 	 (test-name (format "jscs/%s" case-name)))
     `(ert-deftest ,(intern test-name) ()
        (let* ((default-directory (jscs-test-case-directory ,case-name))
-	      (test-file-name (expand-file-name "main.js" default-directory))
+	      (test-file-name (expand-file-name "main.js"))
+	      (expected-file-name (expand-file-name "main.expect.js"))
+	      (expected-content (with-temp-buffer
+				  (insert-file-contents-literally
+				   (if (file-exists-p expected-file-name)
+				       expected-file-name
+				     test-file-name))
+				  (buffer-substring-no-properties
+				   (point-min) (point-max))))
 	      actual-message)
 	 (with-temp-buffer
 	   (insert-file-contents-literally test-file-name)
@@ -61,6 +69,9 @@
 		      (lambda (format-string &rest args)
 			(setq actual-message (format format-string args)))))
 	     (jscs-fix))
+	   (should (string= (buffer-substring-no-properties
+			     (point-min) (point-max))
+			    expected-content))
 	   (should (string= actual-message ,expected-message))
 	   (when ,display-errors
 	     (should (get-buffer "*Jscs-Fix Errors*"))))))))
