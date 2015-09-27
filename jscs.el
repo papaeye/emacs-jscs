@@ -4,9 +4,9 @@
 
 ;; Author: papaeye <papaeye@gmail.com>
 ;; Keywords: languages, convenience
-;; Version: 0.1.0
+;; Version: 0.2.0alpha
 ;; Homepage: https://github.com/papaeye/emacs-jscs
-;; Package-Requires: ((emacs "24.1") (langfmt "0.1.0"))
+;; Package-Requires: ((emacs "24.1") (langfmt "0.2.0alpha"))
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -150,29 +150,28 @@
   "Format the current buffer according to the JSCS tool."
   :group 'jscs
   :modes '(js-mode js2-mode js3-mode)
-  :runner #'jscs-fix--runner
+  :format-command jscs-command
+  :format-args '("--fix" "--reporter" "inline")
+  :format-handler #'jscs-fix--format-handler
+  :diff-handler #'jscs-fix--diff-handler
   :error-filter #'jscs-fix--error-filter)
 
-(defun jscs-fix--runner (tmpfile patchbuf errbuf)
-  (let ((exit (call-process jscs-command nil errbuf nil
-			    "--fix" "--reporter" "inline" tmpfile)))
-    (cond
-     ((= exit jscs-exit-missing-config)
-      (message "No configuration found"))
-     (t
-      (if (zerop (call-process-region (point-min) (point-max) "diff"
-				      nil patchbuf nil "-n" "-" tmpfile))
-	  (message (if (zerop exit)
-		       "Buffer is already jscs-fixed"
-		     "Could not apply jscs-fix"))
-	(langfmt-apply-rcs-patch patchbuf)
-	(message (if (zerop exit)
-		     "Applied jscs-fix"
-		   "Applied jscs-fix partially")))))
-    (when errbuf
-      (if (zerop exit)
-	  (langfmt-kill-error-buffer errbuf)
-	(jscs-fix--process-errors (buffer-file-name) tmpfile errbuf)))))
+(defun jscs-fix--format-handler (exit-status)
+  (cond
+   ((= exit-status jscs-exit-missing-config)
+    (message "No configuration found"))
+   ((and (/= exit-status 0)
+	 (/= exit-status jscs-exit-code-style-errors))
+    (message "Could not apply jscs-fix"))))
+
+(defun jscs-fix--diff-handler (exit-status no-diff-p)
+  (if no-diff-p
+      (message (if (zerop exit-status)
+		   "Buffer is already jscs-fixed"
+		 "Could not apply jscs-fix"))
+    (message (if (zerop exit-status)
+		 "Applied jscs-fix"
+	       "Applied jscs-fix partially"))))
 
 (defun jscs-fix--error-filter (filename tmpfile)
   (while (search-forward-regexp
