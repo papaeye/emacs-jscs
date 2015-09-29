@@ -30,6 +30,8 @@
 (defvar jscs-command)
 (setq jscs-command (expand-file-name "node_modules/.bin/jscs"
 				     jscs-test-directory))
+(defvar jscs-node-path)
+(setq jscs-node-path (expand-file-name "node_modules" jscs-test-directory))
 
 (require 'package)
 (setq package-user-dir
@@ -46,6 +48,58 @@
 
 (defun jscs-test-case-directory (case)
   (expand-file-name case jscs-test-cases-directory))
+
+(ert-deftest jscs/config-loader/no-presets ()
+  (let* ((case-name "config-loader/no-presets/")
+	 (default-directory (jscs-test-case-directory case-name))
+	 (config (jscs--load-config)))
+    (should (= (cdr (assq 'validateIndentation config)) 4))))
+
+(ert-deftest jscs/config-loader/preset-google ()
+  (let* ((case-name "config-loader/preset-google/")
+	 (default-directory (jscs-test-case-directory case-name))
+	 (config (jscs--load-config)))
+    (should (= (cdr (assq 'validateIndentation config)) 2))))
+
+(ert-deftest jscs/config-loader/overwrite ()
+  (let* ((case-name "config-loader/overwrite/")
+	 (default-directory (jscs-test-case-directory case-name))
+	 (config (jscs--load-config)))
+    (should (= (cdr (assq 'validateIndentation config)) 4))))
+
+(ert-deftest jscs/config-loader/missing-config ()
+  (let* ((case-name "config-loader/missing-config/")
+	 (default-directory (jscs-test-case-directory case-name))
+	 (config (jscs--load-config)))
+    (should-not config)))
+
+(defvar js-indent-level)
+
+(ert-deftest jscs/indentation/validateIndentation/Integer ()
+  (let* ((case-name "indentation/validateIndentation-Integer/")
+	 (default-directory (jscs-test-case-directory case-name)))
+    (with-temp-buffer
+      (js-mode)
+      (setq indent-tabs-mode t)
+      (jscs-indent-apply)
+      (should (= js-indent-level 2))
+      (should-not indent-tabs-mode))))
+
+(ert-deftest jscs/indentation/validateIndentation/String ()
+  (let* ((case-name "indentation/validateIndentation-String/")
+	 (default-directory (jscs-test-case-directory case-name)))
+    (with-temp-buffer
+      (js-mode)
+      (setq indent-tabs-mode nil)
+      (jscs-indent-apply)
+      (should (eq indent-tabs-mode t)))))
+
+(ert-deftest jscs/indentation/maximumLineLength ()
+  (let* ((case-name "indentation/maximumLineLength/")
+	 (default-directory (jscs-test-case-directory case-name)))
+    (with-temp-buffer
+      (jscs-indent-apply)
+      (should (= tab-width 2)))))
 
 (defmacro jscs-fix-deftest (case expected-message &optional display-errors)
   (let* ((case-name (format "fix/%s" case))

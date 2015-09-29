@@ -1,0 +1,6 @@
+{
+  "maximumLineLength": {
+    "value": 80,
+    "tabSize": 2
+  }
+}

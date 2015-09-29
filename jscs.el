@@ -78,26 +78,36 @@
   :type 'string
   :group 'jscs)
 
-(defvar jscs--presets-path
-  (expand-file-name "../lib/node_modules/jscs/presets"
-		    (file-name-directory (executable-find jscs-command))))
+(defcustom jscs-node-command "node"
+  "The 'node' command."
+  :type 'string
+  :group 'jscs)
 
-(defun jscs--read-jscsrc ()
-  (let ((dir (locate-dominating-file default-directory ".jscsrc")))
-    (when dir
-      (json-read-file (expand-file-name ".jscsrc" dir)))))
+(defcustom jscs-node-path (expand-file-name
+			   "../lib/node_modules/"
+			   (file-name-directory (executable-find jscs-command)))
+  "The NODE_PATH environment variable."
+  :type 'string
+  :group 'jscs)
 
-(defun jscs--read-preset (name)
-  (let ((preset (expand-file-name (concat name ".json") jscs--presets-path)))
-    (if (file-readable-p preset)
-	(json-read-file preset)
-      (error "Preset %s is not found" name))))
-
-(defun jscs--config-list (config)
-  (let ((preset (cdr (assq 'preset config))))
-    (if (stringp preset)
-	(cons config (jscs--config-list (jscs--read-preset preset)))
-      (list config))))
+(defun jscs--load-config ()
+  (with-temp-buffer
+    (insert
+     "var configFile = require('jscs/lib/cli-config');"
+     "var Configuration = require('jscs/lib/config/configuration');"
+     "var content = configFile.load();"
+     "var config = new Configuration();"
+     "config.registerDefaultRules();"
+     "config.registerDefaultPresets();"
+     "config.load(content);"
+     "var result = config.getProcessedConfig();"
+     "console.log(JSON.stringify(result));")
+    (let ((process-environment process-environment))
+      (push (concat "NODE_PATH=" jscs-node-path) process-environment)
+      (call-process-region (point-min) (point-max) jscs-node-command t t))
+    (goto-char (point-min))
+    (ignore-errors
+      (json-read))))
 
 (defun jscs-indent--rule-validate-indentation (config)
   (let ((indent (cdr (assq 'validateIndentation config))))
@@ -128,21 +138,13 @@
   (list #'jscs-indent--rule-validate-indentation
 	#'jscs-indent--rule-maximum-line-length))
 
-(defun jscs-indent--apply (config)
-  (let ((config-list (jscs--config-list config)))
-    (dolist (func jscs-indent--rule-functions)
-      (let ((tail config-list)
-	    done)
-	(while (and (not done) tail)
-	  (setq done (funcall func (car tail)))
-	  (setq tail (cdr tail)))))))
-
 ;;;###autoload
 (defun jscs-indent-apply ()
+  "Apply JSCS indentation rules."
   (interactive)
-  (let ((jscsrc (jscs--read-jscsrc)))
-    (when jscsrc
-      (jscs-indent--apply jscsrc))))
+  (let ((config (jscs--load-config)))
+    (dolist (func jscs-indent--rule-functions)
+      (funcall func config))))
 
 ;;;###autoload (autoload 'jscs-fix "jscs" nil t)
 ;;;###autoload (autoload 'jscs-fix-before-save "jscs" nil t)
