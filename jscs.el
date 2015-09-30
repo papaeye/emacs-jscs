@@ -6,7 +6,7 @@
 ;; Keywords: languages, convenience
 ;; Version: 0.2.0alpha
 ;; Homepage: https://github.com/papaeye/emacs-jscs
-;; Package-Requires: ((emacs "24.1") (langfmt "0.2.0alpha"))
+;; Package-Requires: ((emacs "24.1") (cl-lib "0.5"))
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -29,8 +29,7 @@
 ;;
 ;; 1. Install JSCS <http://jscs.info/>.
 ;;
-;; 2. Put jscs.el and langfmt.el <https://github.com/papaeye/go-mode.el>
-;;    somewhere in your `load-path'.
+;; 2. Put jscs.el somewhere in your `load-path'.
 ;;
 ;; 3. Add the following code into your .emacs:
 ;;
@@ -58,9 +57,8 @@
 
 ;;; Code:
 
+(eval-when-compile (require 'cl-lib))
 (require 'json)
-
-(require 'langfmt)
 
 (defvar js-indent-level)
 (defvar js2-basic-offset)
@@ -144,34 +142,115 @@
     (dolist (func jscs-indent--rule-functions)
       (funcall func config))))
 
-;;;###autoload (autoload 'jscs-fix "jscs" nil t)
-;;;###autoload (autoload 'jscs-fix-before-save "jscs" nil t)
-(define-langfmt jscs-fix
-  "Format the current buffer according to the JSCS tool."
-  :group 'jscs
-  :modes '(js-mode js2-mode js3-mode)
-  :format-command jscs-command
-  :format-args '("--fix" "--reporter" "inline")
-  :format-handler #'jscs-fix--format-handler
-  :diff-handler #'jscs-fix--diff-handler
-  :error-filter #'jscs-fix--error-filter)
+;; The following code is based on gofmt of go-mode.el.
+;;
+;; Copyright 2013 The go-mode Authors. All rights reserved.
+;; Use of this source code is governed by a BSD-style
+;; license that can be found in the LICENSE.go-mode file.
 
-(defun jscs-fix--format-handler (exit-status)
-  (cond
-   ((= exit-status jscs-exit-missing-config)
-    (message "No configuration found"))
-   ((and (/= exit-status 0)
-	 (/= exit-status jscs-exit-code-style-errors))
-    (message "Could not apply jscs-fix"))))
+(defcustom jscs-fix-show-errors 'buffer
+  "Where to display jscs-fix error output.
+It can either be displayed in its own buffer, in the echo area, or not at all.
 
-(defun jscs-fix--diff-handler (exit-status no-diff-p)
-  (if no-diff-p
-      (message (if (zerop exit-status)
-		   "Buffer is already jscs-fixed"
-		 "Could not apply jscs-fix"))
-    (message (if (zerop exit-status)
-		 "Applied jscs-fix"
-	       "Applied jscs-fix partially"))))
+Please note that Emacs outputs to the echo area when writing
+files and will overwrite jscs-fix's echo output if used from inside
+a `before-save-hook'."
+  :type '(choice
+	  (const :tag "Own buffer" buffer)
+	  (const :tag "Echo area" echo)
+	  (const :tag "None" nil))
+  :group 'jscs)
+
+(defun jscs-fix--delete-whole-line (&optional arg)
+  "Delete the current line without putting it in the `kill-ring'.
+Derived from function `kill-whole-line'.  ARG is defined as for that
+function."
+  (setq arg (or arg 1))
+  (if (and (> arg 0)
+	   (eobp)
+	   (save-excursion (forward-visible-line 0) (eobp)))
+      (signal 'end-of-buffer nil))
+  (if (and (< arg 0)
+	   (bobp)
+	   (save-excursion (end-of-visible-line) (bobp)))
+      (signal 'beginning-of-buffer nil))
+  (cond ((zerop arg)
+	 (delete-region (progn (forward-visible-line 0) (point))
+			(progn (end-of-visible-line) (point))))
+	((< arg 0)
+	 (delete-region (progn (end-of-visible-line) (point))
+			(progn (forward-visible-line (1+ arg))
+			       (unless (bobp)
+				 (backward-char))
+			       (point))))
+	(t
+	 (delete-region (progn (forward-visible-line 0) (point))
+			(progn (forward-visible-line arg) (point))))))
+
+(defun jscs-fix--apply-rcs-patch (patch-buffer)
+  "Apply an RCS-formatted diff from PATCH-BUFFER to the current buffer."
+  (let ((target-buffer (current-buffer))
+	;; Relative offset between buffer line numbers and line numbers
+	;; in patch.
+	;;
+	;; Line numbers in the patch are based on the source file, so
+	;; we have to keep an offset when making changes to the
+	;; buffer.
+	;;
+	;; Appending lines decrements the offset (possibly making it
+	;; negative), deleting lines increments it. This order
+	;; simplifies the forward-line invocations.
+	(line-offset 0))
+    (save-excursion
+      (with-current-buffer patch-buffer
+	(goto-char (point-min))
+	(while (not (eobp))
+	  (unless (looking-at "^\\([ad]\\)\\([0-9]+\\) \\([0-9]+\\)")
+	    (error "invalid rcs patch or internal error in jscs-fix--apply-rcs-patch"))
+	  (forward-line)
+	  (let ((action (match-string 1))
+		(from (string-to-number (match-string 2)))
+		(len  (string-to-number (match-string 3))))
+	    (cond
+	     ((equal action "a")
+	      (let ((start (point)))
+		(forward-line len)
+		(let ((text (buffer-substring start (point))))
+		  (with-current-buffer target-buffer
+		    (cl-decf line-offset len)
+		    (goto-char (point-min))
+		    (forward-line (- from len line-offset))
+		    (insert text)))))
+	     ((equal action "d")
+	      (with-current-buffer target-buffer
+		(jscs-fix--goto-line (- from line-offset))
+		(cl-incf line-offset len)
+		(jscs-fix--delete-whole-line len)))
+	     (t
+	      (error "invalid rcs patch or internal error in jscs-fix--apply-rcs-patch")))))))))
+
+(defun jscs-fix--kill-error-buffer (errbuf)
+  (let ((win (get-buffer-window errbuf)))
+    (if win
+	(quit-window t win)
+      (kill-buffer errbuf))))
+
+(defun jscs-fix--goto-line (line)
+  (goto-char (point-min))
+  (forward-line (1- line)))
+
+(defun jscs-fix--process-errors (filename tmpfile errbuf)
+  (with-current-buffer errbuf
+    (if (eq jscs-fix-show-errors 'echo)
+	(progn
+	  (message "%s" (buffer-string))
+	  (jscs-fix--kill-error-buffer errbuf))
+      ;; Convert stderr to something understood by the compilation mode.
+      (goto-char (point-min))
+      (insert "jscs-fix errors:\n")
+      (funcall #'jscs-fix--error-filter filename tmpfile)
+      (compilation-mode)
+      (display-buffer errbuf))))
 
 (defun jscs-fix--error-filter (filename tmpfile)
   (while (search-forward-regexp
@@ -183,6 +262,63 @@
 			   ":" (match-string 1) ":" (match-string 2)
 			   ": " (match-string 3))
 		   t t)))
+
+;;;###autoload
+(defun jscs-fix ()
+  "Format the current buffer according to the JSCS tool."
+  (interactive)
+  (let* ((tmpfile-suffix (file-name-extension (buffer-file-name) t))
+	 (tmpfile (make-temp-file "jscs-fix" nil tmpfile-suffix))
+	 (patchbuf (get-buffer-create "*Jscs-Fix patch*"))
+	 (errbuf (if jscs-fix-show-errors
+		     (get-buffer-create "*Jscs-Fix Errors*")))
+	 (coding-system-for-read 'utf-8)
+	 (coding-system-for-write 'utf-8))
+
+    (save-restriction
+      (widen)
+      (if errbuf
+	  (with-current-buffer errbuf
+	    (setq buffer-read-only nil)
+	    (erase-buffer)))
+      (with-current-buffer patchbuf
+	(erase-buffer))
+
+      (write-region nil nil tmpfile)
+
+      (let ((exit (call-process jscs-command nil errbuf nil
+				"--fix" "--reporter" "inline" tmpfile)))
+	(cond
+	 ((= exit jscs-exit-missing-config)
+	  (message "No configuration found"))
+	 (t
+	  (if (zerop (call-process-region (point-min) (point-max) "diff"
+					  nil patchbuf nil "-n" "-" tmpfile))
+	      (message (if (zerop exit)
+			   "Buffer is already jscs-fixed"
+			 "Could not apply jscs-fix"))
+	    (jscs-fix--apply-rcs-patch patchbuf)
+	    (message (if (zerop exit)
+			 "Applied jscs-fix"
+		       "Applied jscs-fix partially")))))
+	(when errbuf
+	  (if (zerop exit)
+	      (jscs-fix--kill-error-buffer errbuf)
+	    (jscs-fix--process-errors (buffer-file-name) tmpfile errbuf)))))
+
+    (kill-buffer patchbuf)
+    (delete-file tmpfile)))
+
+;;;###autoload
+(defun jscs-fix-before-save ()
+  "Add this to .emacs to run jscs-fix on the current buffer when saving:
+ (add-hook 'before-save-hook #'jscs-fix-before-save).
+
+Note that this will cause jscs.el to get loaded the first time
+you save any file, kind of defeating the point of autoloading."
+  (interactive)
+  (when (memq major-mode '(js-mode js2-mode js3-mode))
+    (jscs-fix)))
 
 (provide 'jscs)
 ;;; jscs.el ends here

@@ -8,7 +8,7 @@ Installation
 
 1. Install [JSCS](http://jscs.info/).
 
-2. Put `jscs.el` and [langfmt.el](https://github.com/papaeye/go-mode.el) somewhere in your `load-path`.
+2. Put `jscs.el` somewhere in your `load-path`.
 
 3. Add the following code into your .emacs:
 
