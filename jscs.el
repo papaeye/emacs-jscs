@@ -152,26 +152,29 @@
   :modes '(js-mode js2-mode js3-mode)
   :format-command jscs-command
   :format-args '("--fix" "--reporter" "inline")
-  :format-handler #'jscs-fix--format-handler
-  :diff-handler #'jscs-fix--diff-handler
+  :after-format #'jscs-fix--after-format
+  :after-diff #'jscs-fix--after-diff
   :error-filter #'jscs-fix--error-filter)
 
-(defun jscs-fix--format-handler (exit-status)
-  (cond
-   ((= exit-status jscs-exit-missing-config)
-    (message "No configuration found"))
-   ((and (/= exit-status 0)
-	 (/= exit-status jscs-exit-code-style-errors))
-    (message "Could not apply jscs-fix"))))
+(defun jscs-fix--after-format (context)
+  (let ((exit-status (plist-get context :exit-status)))
+    (cond
+     ((= exit-status jscs-exit-missing-config)
+      (message "No configuration found"))
+     ((and (/= exit-status 0)
+	   (/= exit-status jscs-exit-code-style-errors))
+      (message "Could not apply jscs-fix")))))
 
-(defun jscs-fix--diff-handler (exit-status no-diff-p)
-  (if no-diff-p
+(defun jscs-fix--after-diff (context)
+  (let ((exit-status (plist-get context :exit-status))
+	(no-diff-p (plist-get context :no-diff-p)))
+    (if no-diff-p
+	(message (if (zerop exit-status)
+		     "Buffer is already jscs-fixed"
+		   "Could not apply jscs-fix"))
       (message (if (zerop exit-status)
-		   "Buffer is already jscs-fixed"
-		 "Could not apply jscs-fix"))
-    (message (if (zerop exit-status)
-		 "Applied jscs-fix"
-	       "Applied jscs-fix partially"))))
+		   "Applied jscs-fix"
+		 "Applied jscs-fix partially")))))
 
 (defun jscs-fix--error-filter (filename tmpfile)
   (while (search-forward-regexp
