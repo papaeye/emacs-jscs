@@ -111,28 +111,26 @@
 
 (defun jscs-indent--rule-validate-indentation (config)
   (let ((indent (cdr (assq 'validateIndentation config))))
-    (prog1 indent
-      (when (listp indent)
-	(setq indent (cdr (assq 'value indent))))
+    (when (consp indent)
+      (setq indent (cdr (assq 'value indent))))
+    (cond
+     ((integerp indent)
       (cond
-       ((integerp indent)
-	(cond
-	 ((memq major-mode '(js-mode json-mode))
-	  (setq-local js-indent-level indent))
-	 ((eq major-mode 'js2-mode)
-	  (setq-local js2-basic-offset indent)))
-	(setq indent-tabs-mode nil))
-       ((string= indent "\t")
-	(setq indent-tabs-mode t))))))
+       ((memq major-mode '(js-mode json-mode))
+	(setq-local js-indent-level indent))
+       ((eq major-mode 'js2-mode)
+	(setq-local js2-basic-offset indent)))
+      (setq indent-tabs-mode nil))
+     ((string= indent "\t")
+      (setq indent-tabs-mode t)))))
 
 (defun jscs-indent--rule-maximum-line-length (config)
   (let ((rule (cdr (assq 'maximumLineLength config)))
 	tab-size)
-    (prog1 rule
-      (when (listp rule)
-	(setq tab-size (cdr (assq 'tabSize rule)))
-	(when (integerp tab-size)
-	  (setq tab-width tab-size))))))
+    (when (consp rule)
+      (setq tab-size (cdr (assq 'tabSize rule)))
+      (when (integerp tab-size)
+	(setq tab-width tab-size)))))
 
 (defvar jscs-indent--rule-functions
   (list #'jscs-indent--rule-validate-indentation
