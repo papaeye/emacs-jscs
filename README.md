@@ -15,7 +15,7 @@ Installation
     ```el
     (autoload 'jscs-indent-apply "jscs" nil t)
     (autoload 'jscs-fix "jscs" nil t)
-    (autoload 'jscs-fix-before-save "jscs" nil t)
+    (autoload 'jscs-fix-run-before-save "jscs" nil t)
     ```
 
 Usage
@@ -36,5 +36,7 @@ To run `jscs --fix` interactively, run `M-x jscs-fix`.
 To run `jscs --fix` on the current buffer when saving, add the following code into your .emacs:
 
 ```el
-(add-hook 'before-save-hook #'jscs-fix-before-save)
+(add-hook 'js-mode-hook #'jscs-fix-run-before-save)
+(add-hook 'js2-mode-hook #'jscs-fix-run-before-save)
+(add-hook 'js3-mode-hook #'jscs-fix-run-before-save)
 ```

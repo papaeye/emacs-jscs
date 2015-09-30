@@ -35,7 +35,7 @@
 ;;
 ;;     (autoload 'jscs-indent-apply "jscs" nil t)
 ;;     (autoload 'jscs-fix "jscs" nil t)
-;;     (autoload 'jscs-fix-before-save "jscs" nil t)
+;;     (autoload 'jscs-fix-run-before-save "jscs" nil t)
 ;;
 ;; Usage:
 ;;
@@ -53,7 +53,9 @@
 ;; To run "jscs --fix" on the current buffer when saving,
 ;; add the following code into your .emacs:
 ;;
-;;     (add-hook 'before-save-hook #'jscs-fix-before-save)
+;; (add-hook 'js-mode-hook #'jscs-fix-run-before-save)
+;; (add-hook 'js2-mode-hook #'jscs-fix-run-before-save)
+;; (add-hook 'js3-mode-hook #'jscs-fix-run-before-save)
 
 ;;; Code:
 
@@ -319,6 +321,15 @@ you save any file, kind of defeating the point of autoloading."
   (interactive)
   (when (memq major-mode '(js-mode js2-mode js3-mode))
     (jscs-fix)))
+
+;;;###autoload
+(defun jscs-fix-run-before-save ()
+  "Add this to .emacs to run jscs-fix on the current buffer when saving:
+ (add-hook 'js-mode-hook #'jscs-fix-run-before-save)
+ (add-hook 'js2-mode-hook #'jscs-fix-run-before-save)
+ (add-hook 'js3-mode-hook #'jscs-fix-run-before-save)."
+  (interactive)
+  (add-hook 'before-save-hook #'jscs-fix nil t))
 
 (provide 'jscs)
 ;;; jscs.el ends here
