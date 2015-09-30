@@ -42,20 +42,17 @@
 ;; To apply JSCS indentation rules to JavaScript modes,
 ;; add the following code into your .emacs:
 ;;
-;;     (with-eval-after-load 'js
-;;       (add-hook 'js-mode-hook #'jscs-indent-apply))
-;;
-;;     (with-eval-after-load 'js2-mode
-;;       (add-hook 'js2-mode-hook #'jscs-indent-apply))
+;;     (add-hook 'js-mode-hook #'jscs-indent-apply)
+;;     (add-hook 'js2-mode-hook #'jscs-indent-apply)
 ;;
 ;; To run "jscs --fix" interactively, run \\[jscs-fix].
 ;;
 ;; To run "jscs --fix" on the current buffer when saving,
 ;; add the following code into your .emacs:
 ;;
-;; (add-hook 'js-mode-hook #'jscs-fix-run-before-save)
-;; (add-hook 'js2-mode-hook #'jscs-fix-run-before-save)
-;; (add-hook 'js3-mode-hook #'jscs-fix-run-before-save)
+;;     (add-hook 'js-mode-hook #'jscs-fix-run-before-save)
+;;     (add-hook 'js2-mode-hook #'jscs-fix-run-before-save)
+;;     (add-hook 'js3-mode-hook #'jscs-fix-run-before-save)
 
 ;;; Code:
 

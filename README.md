@@ -24,11 +24,8 @@ Usage
 To apply JSCS indentation rules to JavaScript modes, add the following code into your .emacs:
 
 ```el
-(with-eval-after-load 'js
-  (add-hook 'js-mode-hook #'jscs-indent-apply))
-
-(with-eval-after-load 'js2-mode
-  (add-hook 'js2-mode-hook #'jscs-indent-apply))
+(add-hook 'js-mode-hook #'jscs-indent-apply)
+(add-hook 'js2-mode-hook #'jscs-indent-apply)
 ```
 
 To run `jscs --fix` interactively, run `M-x jscs-fix`.
