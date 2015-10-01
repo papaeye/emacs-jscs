@@ -309,17 +309,6 @@ function."
     (delete-file tmpfile)))
 
 ;;;###autoload
-(defun jscs-fix-before-save ()
-  "Add this to .emacs to run jscs-fix on the current buffer when saving:
- (add-hook 'before-save-hook #'jscs-fix-before-save).
-
-Note that this will cause jscs.el to get loaded the first time
-you save any file, kind of defeating the point of autoloading."
-  (interactive)
-  (when (memq major-mode '(js-mode js2-mode js3-mode))
-    (jscs-fix)))
-
-;;;###autoload
 (defun jscs-fix-run-before-save ()
   "Add this to .emacs to run jscs-fix on the current buffer when saving:
  (add-hook 'js-mode-hook #'jscs-fix-run-before-save)
